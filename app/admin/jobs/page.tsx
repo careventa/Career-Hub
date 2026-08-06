@@ -10,7 +10,15 @@ export default function AdminJobs() {
 
   async function createJob(e: React.FormEvent) {
     e.preventDefault();
-    await fetch('/api/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, deadline: new Date(form.deadline) }) });
+    const token = localStorage.getItem('adminToken');
+    await fetch('/api/jobs', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ ...form, deadline: new Date(form.deadline) }),
+    });
     setForm({ title: '', slug: '', organization: '', location: '', deadline: '', description: '', applyLink: '' });
     mutate();
   }

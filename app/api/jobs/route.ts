@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyToken } from "@/lib/auth";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -12,6 +13,14 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+  const authHeader = req.headers.get("authorization") || "";
+  const token = authHeader.replace("Bearer ", "");
+  const user = verifyToken(token) as { id?: string; email?: string } | null;
+
+  if (!user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await req.json();
   const job = await prisma.job.create({ data: body });
   return NextResponse.json({ job });
