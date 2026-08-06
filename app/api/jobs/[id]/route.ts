@@ -1,19 +1,27 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
-  const job = await prisma.job.findUnique({ where: { id: params.id } });
+const resolveParams = async (context: { params: Promise<{ id: string }> }) => {
+  const params = await context.params;
+  return params.id;
+};
+
+export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const id = await resolveParams(context);
+  const job = await prisma.job.findUnique({ where: { id } });
   if (!job) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ job });
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const id = await resolveParams(context);
   const body = await req.json();
-  const job = await prisma.job.update({ where: { id: params.id }, data: body });
+  const job = await prisma.job.update({ where: { id }, data: body });
   return NextResponse.json({ job });
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
-  await prisma.job.delete({ where: { id: params.id } });
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const id = await resolveParams(context);
+  await prisma.job.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }

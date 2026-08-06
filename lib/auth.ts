@@ -1,10 +1,12 @@
-import jwt from "jsonwebtoken";
+import jwt, { type Secret, type SignOptions } from "jsonwebtoken";
+import type { StringValue } from "ms";
 import bcrypt from "bcryptjs";
 
-const JWT_SECRET = process.env.JWT_SECRET || "change_this_jwt_secret";
+const JWT_SECRET: Secret = process.env.JWT_SECRET || "change_this_jwt_secret";
 
-export function signToken(payload: object, expiresIn = "7d") {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+export function signToken(payload: object, expiresIn: StringValue | number = "7d") {
+  const options: SignOptions = { expiresIn };
+  return jwt.sign(payload, JWT_SECRET, options);
 }
 
 export function verifyToken(token: string) {
