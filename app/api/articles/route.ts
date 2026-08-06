@@ -3,8 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth";
 
 export async function GET() {
-  const scholarships = await prisma.scholarship.findMany({ orderBy: { createdAt: "desc" } });
-  return NextResponse.json({ scholarships });
+  const articles = await prisma.article.findMany({ orderBy: { createdAt: "desc" } });
+  return NextResponse.json({ articles });
 }
 
 export async function POST(req: Request) {
@@ -17,6 +17,11 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const scholarship = await prisma.scholarship.create({ data: body });
-  return NextResponse.json({ scholarship });
+  const existing = await prisma.article.findUnique({ where: { slug: body.slug } });
+
+  const article = existing
+    ? await prisma.article.update({ where: { id: existing.id }, data: body })
+    : await prisma.article.create({ data: body });
+
+  return NextResponse.json({ article });
 }

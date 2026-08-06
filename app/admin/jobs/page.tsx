@@ -1,53 +1,289 @@
 "use client";
+import { useEffect, useState } from "react";
 import useSWR from "swr";
-import { useState } from "react";
 
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+const fetcher = async (url: string) => {
+  const token = typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
+  const res = await fetch(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error("Request failed");
+  return res.json();
+};
 
-export default function AdminJobs() {
-  const { data, mutate } = useSWR('/api/jobs', fetcher);
-  const [form, setForm] = useState({ title: '', slug: '', organization: '', location: '', deadline: '', description: '', applyLink: '' });
+function getAuthHeaders() {
+  const token = typeof window !== "undefined" ? localStorage.getItem("adminToken") : null;
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
 
-  async function createJob(e: React.FormEvent) {
+type TabKey = "jobs" | "scholarships" | "admissions" | "career";
+
+type ArticleForm = {
+  title: string;
+  slug: string;
+  content: string;
+  metaTitle: string;
+  metaDescription: string;
+};
+
+const blankJob = {
+  title: "",
+  slug: "",
+  organization: "",
+  location: "",
+  deadline: "",
+  description: "",
+  applyLink: "",
+};
+
+const blankScholarship = {
+  title: "",
+  slug: "",
+  country: "",
+  deadline: "",
+  description: "",
+};
+
+const blankArticle = {
+  title: "",
+  slug: "",
+  content: "",
+  metaTitle: "",
+  metaDescription: "",
+};
+
+export default function AdminContentPage() {
+  const { data: jobsData, mutate: mutateJobs } = useSWR("/api/jobs", fetcher);
+  const { data: scholarshipsData, mutate: mutateScholarships } = useSWR("/api/scholarships", fetcher);
+  const { data: articlesData, mutate: mutateArticles } = useSWR("/api/articles", fetcher);
+
+  const [activeTab, setActiveTab] = useState<TabKey>("jobs");
+  const [jobForm, setJobForm] = useState(blankJob);
+  const [editingJobId, setEditingJobId] = useState<string | null>(null);
+  const [scholarshipForm, setScholarshipForm] = useState(blankScholarship);
+  const [editingScholarshipId, setEditingScholarshipId] = useState<string | null>(null);
+  const [admissionsForm, setAdmissionsForm] = useState<ArticleForm>({ ...blankArticle, slug: "admissions", title: "Admissions" });
+  const [careerForm, setCareerForm] = useState<ArticleForm>({ ...blankArticle, slug: "career-guides", title: "Career Guides" });
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && !localStorage.getItem("adminToken")) {
+      window.location.href = "/admin/login";
+    }
+  }, []);
+
+  useEffect(() => {
+    const admissionsArticle = articlesData?.articles?.find((article: any) => article.slug === "admissions");
+    if (admissionsArticle) {
+      setAdmissionsForm({
+        title: admissionsArticle.title || "Admissions",
+        slug: admissionsArticle.slug || "admissions",
+        content: admissionsArticle.content || "",
+        metaTitle: admissionsArticle.metaTitle || "Admissions",
+        metaDescription: admissionsArticle.metaDescription || "",
+      });
+    }
+  }, [articlesData]);
+
+  useEffect(() => {
+    const careerArticle = articlesData?.articles?.find((article: any) => article.slug === "career-guides");
+    if (careerArticle) {
+      setCareerForm({
+        title: careerArticle.title || "Career Guides",
+        slug: careerArticle.slug || "career-guides",
+        content: careerArticle.content || "",
+        metaTitle: careerArticle.metaTitle || "Career Guides",
+        metaDescription: careerArticle.metaDescription || "",
+      });
+    }
+  }, [articlesData]);
+
+  async function submitJob(e: React.FormEvent) {
     e.preventDefault();
-    const token = localStorage.getItem('adminToken');
-    await fetch('/api/jobs', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify({ ...form, deadline: new Date(form.deadline) }),
+    const method = editingJobId ? "PUT" : "POST";
+    const url = editingJobId ? `/api/jobs/${editingJobId}` : "/api/jobs";
+    const res = await fetch(url, {
+      method,
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ ...jobForm, deadline: new Date(jobForm.deadline) }),
     });
-    setForm({ title: '', slug: '', organization: '', location: '', deadline: '', description: '', applyLink: '' });
-    mutate();
+    if (res.ok) {
+      setMessage("Job saved.");
+      setJobForm(blankJob);
+      setEditingJobId(null);
+      mutateJobs();
+    }
   }
 
-  return (
-    <div className="container mx-auto px-6 py-12">
-      <h1 className="text-2xl font-bold mb-4">Admin — Jobs</h1>
-      <form onSubmit={createJob} className="grid gap-2 grid-cols-1 md:grid-cols-2 mb-6">
-        <input value={form.title} onChange={(e)=>setForm({...form, title:e.target.value})} placeholder="Title" className="border p-2" />
-        <input value={form.slug} onChange={(e)=>setForm({...form, slug:e.target.value})} placeholder="Slug" className="border p-2" />
-        <input value={form.organization} onChange={(e)=>setForm({...form, organization:e.target.value})} placeholder="Organization" className="border p-2" />
-        <input value={form.location} onChange={(e)=>setForm({...form, location:e.target.value})} placeholder="Location" className="border p-2" />
-        <input value={form.deadline} onChange={(e)=>setForm({...form, deadline:e.target.value})} placeholder="Deadline (YYYY-MM-DD)" className="border p-2" />
-        <input value={form.applyLink} onChange={(e)=>setForm({...form, applyLink:e.target.value})} placeholder="Apply link" className="border p-2" />
-        <textarea value={form.description} onChange={(e)=>setForm({...form, description:e.target.value})} placeholder="Description" className="border p-2 md:col-span-2" />
-        <button className="bg-green-600 text-white py-2 px-4 rounded md:col-span-2">Create Job</button>
-      </form>
+  async function deleteJob(id: string) {
+    const res = await fetch(`/api/jobs/${id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+    if (res.ok) {
+      setMessage("Job removed.");
+      mutateJobs();
+    }
+  }
 
-      <div className="grid gap-4">
-        {data?.jobs?.map((j: any) => (
-          <div key={j.id} className="border p-4 rounded flex justify-between items-start">
-            <div>
-              <h3 className="font-bold">{j.title}</h3>
-              <div className="text-sm text-gray-600">{j.organization} • {j.location}</div>
-            </div>
-            <div className="text-sm text-gray-500">{new Date(j.createdAt).toLocaleDateString()}</div>
-          </div>
+  async function submitScholarship(e: React.FormEvent) {
+    e.preventDefault();
+    const method = editingScholarshipId ? "PUT" : "POST";
+    const url = editingScholarshipId ? `/api/scholarships/${editingScholarshipId}` : "/api/scholarships";
+    const res = await fetch(url, {
+      method,
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ ...scholarshipForm, deadline: new Date(scholarshipForm.deadline) }),
+    });
+    if (res.ok) {
+      setMessage("Scholarship saved.");
+      setScholarshipForm(blankScholarship);
+      setEditingScholarshipId(null);
+      mutateScholarships();
+    }
+  }
+
+  async function deleteScholarship(id: string) {
+    const res = await fetch(`/api/scholarships/${id}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
+    });
+    if (res.ok) {
+      setMessage("Scholarship removed.");
+      mutateScholarships();
+    }
+  }
+
+  async function submitArticle(e: React.FormEvent, form: ArticleForm) {
+    e.preventDefault();
+    const res = await fetch("/api/articles", {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(form),
+    });
+    if (res.ok) {
+      setMessage("Page content saved.");
+      mutateArticles();
+    }
+  }
+
+  const tabs: Array<{ key: TabKey; label: string }> = [
+    { key: "jobs", label: "Jobs" },
+    { key: "scholarships", label: "Scholarships" },
+    { key: "admissions", label: "Admissions" },
+    { key: "career", label: "Career Guides" },
+  ];
+
+  return (
+    <div className="container mx-auto px-6 py-12 space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold">Admin Content Dashboard</h1>
+        <p className="text-gray-600 mt-2">Manage jobs, scholarships, admissions guidance, and career guides from one place.</p>
+        {message ? <p className="mt-3 text-sm text-green-700">{message}</p> : null}
+      </div>
+
+      <div className="flex flex-wrap gap-2 border-b pb-3">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`px-4 py-2 rounded-full text-sm font-medium ${activeTab === tab.key ? "bg-green-700 text-white" : "bg-gray-100 text-gray-700"}`}
+          >
+            {tab.label}
+          </button>
         ))}
       </div>
+
+      {activeTab === "jobs" ? (
+        <section className="border rounded-xl p-6 shadow-sm">
+          <h2 className="text-xl font-semibold mb-4">Jobs</h2>
+          <form onSubmit={submitJob} className="grid gap-3 grid-cols-1 md:grid-cols-2 mb-6">
+            <input value={jobForm.title} onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })} placeholder="Title" className="border p-2" />
+            <input value={jobForm.slug} onChange={(e) => setJobForm({ ...jobForm, slug: e.target.value })} placeholder="Slug" className="border p-2" />
+            <input value={jobForm.organization} onChange={(e) => setJobForm({ ...jobForm, organization: e.target.value })} placeholder="Organization" className="border p-2" />
+            <input value={jobForm.location} onChange={(e) => setJobForm({ ...jobForm, location: e.target.value })} placeholder="Location" className="border p-2" />
+            <input type="date" value={jobForm.deadline} onChange={(e) => setJobForm({ ...jobForm, deadline: e.target.value })} className="border p-2" />
+            <input value={jobForm.applyLink} onChange={(e) => setJobForm({ ...jobForm, applyLink: e.target.value })} placeholder="Apply link" className="border p-2" />
+            <textarea value={jobForm.description} onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })} placeholder="Description" className="border p-2 md:col-span-2" rows={5} />
+            <button className="bg-green-600 text-white py-2 px-4 rounded md:col-span-2">{editingJobId ? "Update Job" : "Create Job"}</button>
+          </form>
+
+          <div className="space-y-3">
+            {jobsData?.jobs?.map((job: any) => (
+              <div key={job.id} className="border rounded p-4 flex flex-col md:flex-row md:justify-between md:items-start gap-2">
+                <div>
+                  <h3 className="font-semibold">{job.title}</h3>
+                  <p className="text-sm text-gray-600">{job.organization} • {job.location}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => { setJobForm({ title: job.title, slug: job.slug, organization: job.organization, location: job.location, deadline: job.deadline?.slice(0, 10) || "", description: job.description, applyLink: job.applyLink }); setEditingJobId(job.id); }} className="text-sm text-blue-600">Edit</button>
+                  <button onClick={() => deleteJob(job.id)} className="text-sm text-red-600">Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "scholarships" ? (
+        <section className="border rounded-xl p-6 shadow-sm">
+          <h2 className="text-xl font-semibold mb-4">Scholarships</h2>
+          <form onSubmit={submitScholarship} className="grid gap-3 grid-cols-1 md:grid-cols-2 mb-6">
+            <input value={scholarshipForm.title} onChange={(e) => setScholarshipForm({ ...scholarshipForm, title: e.target.value })} placeholder="Title" className="border p-2" />
+            <input value={scholarshipForm.slug} onChange={(e) => setScholarshipForm({ ...scholarshipForm, slug: e.target.value })} placeholder="Slug" className="border p-2" />
+            <input value={scholarshipForm.country} onChange={(e) => setScholarshipForm({ ...scholarshipForm, country: e.target.value })} placeholder="Country" className="border p-2" />
+            <input type="date" value={scholarshipForm.deadline} onChange={(e) => setScholarshipForm({ ...scholarshipForm, deadline: e.target.value })} className="border p-2" />
+            <textarea value={scholarshipForm.description} onChange={(e) => setScholarshipForm({ ...scholarshipForm, description: e.target.value })} placeholder="Description" className="border p-2 md:col-span-2" rows={5} />
+            <button className="bg-green-600 text-white py-2 px-4 rounded md:col-span-2">{editingScholarshipId ? "Update Scholarship" : "Create Scholarship"}</button>
+          </form>
+
+          <div className="space-y-3">
+            {scholarshipsData?.scholarships?.map((scholarship: any) => (
+              <div key={scholarship.id} className="border rounded p-4 flex flex-col md:flex-row md:justify-between md:items-start gap-2">
+                <div>
+                  <h3 className="font-semibold">{scholarship.title}</h3>
+                  <p className="text-sm text-gray-600">{scholarship.country}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => { setScholarshipForm({ title: scholarship.title, slug: scholarship.slug, country: scholarship.country, deadline: scholarship.deadline?.slice(0, 10) || "", description: scholarship.description }); setEditingScholarshipId(scholarship.id); }} className="text-sm text-blue-600">Edit</button>
+                  <button onClick={() => deleteScholarship(scholarship.id)} className="text-sm text-red-600">Delete</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "admissions" ? (
+        <section className="border rounded-xl p-6 shadow-sm">
+          <h2 className="text-xl font-semibold mb-4">Admissions Page</h2>
+          <form onSubmit={(e) => submitArticle(e, admissionsForm)} className="grid gap-3">
+            <input value={admissionsForm.title} onChange={(e) => setAdmissionsForm({ ...admissionsForm, title: e.target.value })} placeholder="Page title" className="border p-2" />
+            <input value={admissionsForm.slug} onChange={(e) => setAdmissionsForm({ ...admissionsForm, slug: e.target.value })} placeholder="Slug" className="border p-2" />
+            <input value={admissionsForm.metaTitle} onChange={(e) => setAdmissionsForm({ ...admissionsForm, metaTitle: e.target.value })} placeholder="Meta title" className="border p-2" />
+            <input value={admissionsForm.metaDescription} onChange={(e) => setAdmissionsForm({ ...admissionsForm, metaDescription: e.target.value })} placeholder="Meta description" className="border p-2" />
+            <textarea value={admissionsForm.content} onChange={(e) => setAdmissionsForm({ ...admissionsForm, content: e.target.value })} placeholder="Page content. Tip: use blank lines for paragraphs, - for bullet lists, and ### for headings." className="border p-2" rows={10} />
+            <button className="bg-blue-600 text-white py-2 px-4 rounded">Save Admissions Content</button>
+          </form>
+        </section>
+      ) : null}
+
+      {activeTab === "career" ? (
+        <section className="border rounded-xl p-6 shadow-sm">
+          <h2 className="text-xl font-semibold mb-4">Career Guides Page</h2>
+          <form onSubmit={(e) => submitArticle(e, careerForm)} className="grid gap-3">
+            <input value={careerForm.title} onChange={(e) => setCareerForm({ ...careerForm, title: e.target.value })} placeholder="Page title" className="border p-2" />
+            <input value={careerForm.slug} onChange={(e) => setCareerForm({ ...careerForm, slug: e.target.value })} placeholder="Slug" className="border p-2" />
+            <input value={careerForm.metaTitle} onChange={(e) => setCareerForm({ ...careerForm, metaTitle: e.target.value })} placeholder="Meta title" className="border p-2" />
+            <input value={careerForm.metaDescription} onChange={(e) => setCareerForm({ ...careerForm, metaDescription: e.target.value })} placeholder="Meta description" className="border p-2" />
+            <textarea value={careerForm.content} onChange={(e) => setCareerForm({ ...careerForm, content: e.target.value })} placeholder="Page content. Tip: use blank lines for paragraphs, - for bullet lists, and ### for headings." className="border p-2" rows={10} />
+            <button className="bg-blue-600 text-white py-2 px-4 rounded">Save Career Guides Content</button>
+          </form>
+        </section>
+      ) : null}
     </div>
   );
 }
