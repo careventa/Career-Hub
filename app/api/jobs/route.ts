@@ -21,7 +21,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await req.json();
-  const job = await prisma.job.create({ data: body });
-  return NextResponse.json({ job });
+  try {
+    const body = await req.json();
+    const job = await prisma.job.create({ data: body });
+    return NextResponse.json({ job });
+  } catch (error) {
+    console.error("Failed to create job", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to create job" },
+      { status: 500 }
+    );
+  }
 }

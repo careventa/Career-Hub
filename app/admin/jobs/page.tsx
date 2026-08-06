@@ -108,13 +108,16 @@ export default function AdminContentPage() {
     const res = await fetch(url, {
       method,
       headers: getAuthHeaders(),
-      body: JSON.stringify({ ...jobForm, deadline: new Date(jobForm.deadline) }),
+      body: JSON.stringify({ ...jobForm, deadline: jobForm.deadline ? new Date(jobForm.deadline).toISOString() : null }),
     });
+    const data = await res.json().catch(() => ({}));
     if (res.ok) {
       setMessage("Job saved.");
       setJobForm(blankJob);
       setEditingJobId(null);
       mutateJobs();
+    } else {
+      setMessage(data.error || "Unable to save job.");
     }
   }
 
