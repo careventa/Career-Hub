@@ -1,27 +1,26 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-const resolveParams = async (context: { params: Promise<{ id: string }> }) => {
-  const params = await context.params;
-  return params.id;
+type JobRouteContext = {
+  params: Promise<{ id: string }>;
 };
 
-export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const id = await resolveParams(context);
+export async function GET(request: Request, { params }: JobRouteContext) {
+  const id = (await params).id;
   const job = await prisma.job.findUnique({ where: { id } });
   if (!job) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ job });
 }
 
-export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const id = await resolveParams(context);
-  const body = await req.json();
+export async function PUT(request: Request, { params }: JobRouteContext) {
+  const id = (await params).id;
+  const body = await request.json();
   const job = await prisma.job.update({ where: { id }, data: body });
   return NextResponse.json({ job });
 }
 
-export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const id = await resolveParams(context);
+export async function DELETE(request: Request, { params }: JobRouteContext) {
+  const id = (await params).id;
   await prisma.job.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }
