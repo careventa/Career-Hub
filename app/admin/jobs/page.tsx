@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import useSWR from "swr";
 
 const fetcher = async (url: string) => {
@@ -188,11 +189,16 @@ export default function AdminContentPage() {
 
   return (
     <div className="container mx-auto px-6 py-12 space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold">Admin Content Dashboard</h1>
-        <p className="text-gray-600 mt-2">Manage jobs, scholarships, admissions guidance, and career guides from one place.</p>
-        {message ? <p className="mt-3 text-sm text-green-700">{message}</p> : null}
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Admin Content Dashboard</h1>
+          <p className="text-gray-600 mt-2">Manage jobs, scholarships, admissions guidance, and career guides from one place.</p>
+        </div>
+        <Link href="/admin/ai" className="inline-flex w-fit items-center rounded bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800">
+          AI Automation
+        </Link>
       </div>
+      {message ? <p className="-mt-6 text-sm text-green-700">{message}</p> : null}
 
       <div className="flex flex-wrap gap-2 border-b pb-3">
         {tabs.map((tab) => (
