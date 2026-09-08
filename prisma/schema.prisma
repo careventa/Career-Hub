@@ -35,6 +35,7 @@ model Scholarship {
   country     String
   deadline    DateTime
   description String   @db.Text
+  applyLink   String?
   createdAt   DateTime @default(now())
 }
 
@@ -45,6 +46,7 @@ model Article {
   content         String   @db.Text
   metaTitle       String
   metaDescription String
+  sourceUrl       String?
   createdAt       DateTime @default(now())
 }
 

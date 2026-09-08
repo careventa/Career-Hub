@@ -15,6 +15,11 @@ export default async function AdmissionsPage() {
       <div className="mt-6">
         <ContentRenderer content={article?.content || "Stay informed about program openings, eligibility requirements, and application timelines."} />
       </div>
+      {article?.sourceUrl ? (
+        <a href={article.sourceUrl} target="_blank" rel="noreferrer" className="mt-6 inline-block text-green-700 underline">
+          Open official source
+        </a>
+      ) : null}
     </div>
   );
 }

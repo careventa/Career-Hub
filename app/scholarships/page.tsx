@@ -9,6 +9,7 @@ export default async function ScholarshipsPage() {
     country: string;
     description: string;
     deadline: Date;
+    applyLink: string | null;
   }> = [];
 
   try {
@@ -33,6 +34,11 @@ export default async function ScholarshipsPage() {
             <p className="mt-4 text-xs text-gray-500">
               Deadline: {new Date(scholarship.deadline).toLocaleDateString()}
             </p>
+            {scholarship.applyLink ? (
+              <a href={scholarship.applyLink} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm text-green-700 underline">
+                Apply / view source
+              </a>
+            ) : null}
           </article>
         ))}
       </div>

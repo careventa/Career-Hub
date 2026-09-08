@@ -50,6 +50,7 @@ export async function POST(req: Request) {
           country: draft.country || "Pakistan",
           deadline: draft.deadline || new Date(),
           description: draft.description,
+          applyLink: draft.applyLink || draft.sourceUrl || null,
         },
       });
     }
@@ -62,6 +63,7 @@ export async function POST(req: Request) {
           content: draft.content || draft.description,
           metaTitle: draft.metaTitle || "Admissions",
           metaDescription: draft.metaDescription || draft.description.slice(0, 180),
+          sourceUrl: draft.applyLink || draft.sourceUrl || null,
         },
         create: {
           slug: "admissions",
@@ -69,6 +71,7 @@ export async function POST(req: Request) {
           content: draft.content || draft.description,
           metaTitle: draft.metaTitle || "Admissions",
           metaDescription: draft.metaDescription || draft.description.slice(0, 180),
+          sourceUrl: draft.applyLink || draft.sourceUrl || null,
         },
       });
     }
@@ -81,6 +84,7 @@ export async function POST(req: Request) {
           content: draft.content || draft.description,
           metaTitle: draft.metaTitle || "Career Guides",
           metaDescription: draft.metaDescription || draft.description.slice(0, 180),
+          sourceUrl: draft.applyLink || draft.sourceUrl || null,
         },
         create: {
           slug: "career-guides",
@@ -88,6 +92,7 @@ export async function POST(req: Request) {
           content: draft.content || draft.description,
           metaTitle: draft.metaTitle || "Career Guides",
           metaDescription: draft.metaDescription || draft.description.slice(0, 180),
+          sourceUrl: draft.applyLink || draft.sourceUrl || null,
         },
       });
     }

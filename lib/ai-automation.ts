@@ -49,6 +49,29 @@ function stripHtml(value: string) {
     .trim();
 }
 
+function extractPageLinks(html: string, sourceUrl: string) {
+  const links: Array<{ title: string; url: string }> = [];
+  const baseUrl = new URL(sourceUrl);
+  const linkPattern = /<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = linkPattern.exec(html)) !== null && links.length < 100) {
+    const title = stripHtml(match[2]);
+    if (title.length < 8 || /^(home|login|logout|menu|read more|click here|contact us)$/i.test(title)) continue;
+
+    try {
+      const url = new URL(match[1], baseUrl).toString();
+      if (url.startsWith("http://") || url.startsWith("https://")) {
+        links.push({ title, url });
+      }
+    } catch {
+      // Ignore malformed links from source pages.
+    }
+  }
+
+  return links;
+}
+
 function toSentenceCase(value: string) {
   return value
     .replace(/\s+/g, " ")
@@ -64,7 +87,7 @@ function extractDeadlineFromText(value: string) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-async function extractListingsWithAi(text: string, source: SourceConfig) {
+async function extractListingsWithAi(text: string, pageLinks: Array<{ title: string; url: string }>, source: SourceConfig) {
   const apiKey = process.env.AI_API_KEY;
   if (!apiKey) return null;
 
@@ -75,13 +98,13 @@ async function extractListingsWithAi(text: string, source: SourceConfig) {
     body: JSON.stringify({
       systemInstruction: {
         parts: [{
-          text: "Extract real Pakistan jobs, scholarships, admissions, or career guides from the supplied webpage. Return JSON with an items array. Do not invent data. Use null when unknown. Each item must have title, description, deadline, applyLink, organization, location, country, content, metaTitle, and metaDescription.",
+          text: "Extract each distinct real Pakistan job, scholarship, admission opportunity, or career guide from the supplied webpage. Return one item per distinct opportunity, never one item for the whole website. Use the exact matching URL from pageLinks as applyLink. Never use the source homepage as applyLink when a specific listing URL exists. Do not invent data. Use null when unknown. Return JSON with an items array; each item must have title, description, deadline, applyLink, organization, location, country, content, metaTitle, and metaDescription.",
         }],
       },
       contents: [
         {
           role: "user",
-          parts: [{ text: JSON.stringify({ source, webpage: text.slice(0, 12000) }) }],
+          parts: [{ text: JSON.stringify({ source, pageLinks, webpage: text.slice(0, 12000) }) }],
         },
       ],
       generationConfig: {
@@ -132,19 +155,35 @@ export async function scanSourcesForDrafts(sourceConfigs: SourceConfig[] = DEFAU
 
       const html = await res.text();
       const text = stripHtml(html);
-      const aiItems = await extractListingsWithAi(text, source);
-      const items = aiItems?.length ? aiItems : [{
-        title: toSentenceCase(source.sourceName),
+      const pageLinks = extractPageLinks(html, source.sourceUrl);
+      const aiItems = await extractListingsWithAi(text, pageLinks, source);
+      const items = aiItems?.length ? aiItems : pageLinks.map((link) => ({
+        title: link.title,
         organization: source.sourceName,
-        location: /pakistan|islamabad|lahore|karachi|rawalpindi|peshawar|multan|quetta|faisalabad|sindh|punjab|kpk|balochistan/i.test(text) ? "Pakistan" : null,
+        location: "Pakistan",
         country: "Pakistan",
-        deadline: extractDeadlineFromText(text)?.toISOString() || null,
-        description: (text.slice(0, 3000) || `${source.sourceName} listing`),
-        applyLink: source.sourceUrl,
-        content: text.slice(0, 3000),
-        metaTitle: `${toSentenceCase(source.sourceName)} - Pakistan`,
-        metaDescription: text.slice(0, 180),
-      }];
+        deadline: null,
+        description: `Review this ${source.type.replace("_", " ")} from ${source.sourceName}.`,
+        applyLink: link.url,
+        content: link.title,
+        metaTitle: `${link.title} - Pakistan`,
+        metaDescription: `Potential ${source.type.replace("_", " ")} from ${source.sourceName}.`,
+      }));
+
+      if (items.length === 0) {
+        items.push({
+          title: toSentenceCase(source.sourceName),
+          organization: source.sourceName,
+          location: /pakistan|islamabad|lahore|karachi|rawalpindi|peshawar|multan|quetta|faisalabad|sindh|punjab|kpk|balochistan/i.test(text) ? "Pakistan" : null,
+          country: "Pakistan",
+          deadline: extractDeadlineFromText(text)?.toISOString() || null,
+          description: (text.slice(0, 3000) || `${source.sourceName} listing`),
+          applyLink: source.sourceUrl,
+          content: text.slice(0, 3000),
+          metaTitle: `${toSentenceCase(source.sourceName)} - Pakistan`,
+          metaDescription: text.slice(0, 180),
+        });
+      }
 
       for (const item of items) {
         const title = item.title?.trim();
@@ -160,7 +199,7 @@ export async function scanSourcesForDrafts(sourceConfigs: SourceConfig[] = DEFAU
           country: item.country || "Pakistan",
           deadline: deadline && !Number.isNaN(deadline.getTime()) ? deadline : null,
           description: item.description,
-          applyLink: item.applyLink || source.sourceUrl,
+          applyLink: item.applyLink || pageLinks[0]?.url || source.sourceUrl,
           content: item.content || item.description,
           metaTitle: item.metaTitle || `${title} - Pakistan`,
           metaDescription: item.metaDescription || item.description.slice(0, 180),
