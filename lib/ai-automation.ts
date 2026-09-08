@@ -68,35 +68,33 @@ async function extractListingsWithAi(text: string, source: SourceConfig) {
   const apiKey = process.env.AI_API_KEY;
   if (!apiKey) return null;
 
-  const baseUrl = process.env.AI_BASE_URL || "https://api.openai.com/v1";
-  const model = process.env.AI_MODEL || "gpt-4o-mini";
-  const response = await fetch(`${baseUrl}/chat/completions`, {
+  const model = process.env.AI_MODEL || "gemini-2.0-flash";
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model,
-      temperature: 0,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content: "Extract real Pakistan jobs, scholarships, admissions, or career guides from the supplied webpage. Return JSON with an items array. Do not invent data. Use null when unknown. Each item must have title, description, deadline, applyLink, organization, location, country, content, metaTitle, and metaDescription.",
-        },
+      systemInstruction: {
+        parts: [{
+          text: "Extract real Pakistan jobs, scholarships, admissions, or career guides from the supplied webpage. Return JSON with an items array. Do not invent data. Use null when unknown. Each item must have title, description, deadline, applyLink, organization, location, country, content, metaTitle, and metaDescription.",
+        }],
+      },
+      contents: [
         {
           role: "user",
-          content: JSON.stringify({ source, webpage: text.slice(0, 12000) }),
+          parts: [{ text: JSON.stringify({ source, webpage: text.slice(0, 12000) }) }],
         },
       ],
+      generationConfig: {
+        temperature: 0,
+        responseMimeType: "application/json",
+      },
     }),
     cache: "no-store",
   });
 
   if (!response.ok) return null;
-  const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
-  const content = payload.choices?.[0]?.message?.content;
+  const payload = await response.json() as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
+  const content = payload.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!content) return null;
 
   try {
