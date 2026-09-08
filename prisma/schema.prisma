@@ -54,3 +54,23 @@ model SavedJob {
   jobId     String
   createdAt DateTime @default(now())
 }
+
+model AiDraft {
+  id              String    @id @default(cuid())
+  type            String
+  status          String    @default("pending_review")
+  sourceUrl       String?
+  sourceName      String?
+  title           String
+  organization    String?
+  location        String?
+  country         String?
+  deadline        DateTime?
+  description     String    @db.Text
+  applyLink       String?
+  content         String?   @db.Text
+  metaTitle       String?
+  metaDescription String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
