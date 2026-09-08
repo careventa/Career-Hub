@@ -6,6 +6,19 @@ export type SourceConfig = {
   sourceUrl: string;
 };
 
+type ExtractedListing = {
+  title: string;
+  organization?: string | null;
+  location?: string | null;
+  country?: string | null;
+  deadline?: string | null;
+  description: string;
+  applyLink?: string | null;
+  content?: string | null;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+};
+
 export const DEFAULT_SOURCE_CONFIGS: SourceConfig[] = [
   { type: "government_job", sourceName: "FPSC Jobs", sourceUrl: "https://www.fpsc.gov.pk/jobs/" },
   { type: "government_job", sourceName: "Punjab Public Service Commission", sourceUrl: "https://ppsc.gop.pk/" },
@@ -51,6 +64,49 @@ function extractDeadlineFromText(value: string) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+async function extractListingsWithAi(text: string, source: SourceConfig) {
+  const apiKey = process.env.AI_API_KEY;
+  if (!apiKey) return null;
+
+  const baseUrl = process.env.AI_BASE_URL || "https://api.openai.com/v1";
+  const model = process.env.AI_MODEL || "gpt-4o-mini";
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0,
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: "Extract real Pakistan jobs, scholarships, admissions, or career guides from the supplied webpage. Return JSON with an items array. Do not invent data. Use null when unknown. Each item must have title, description, deadline, applyLink, organization, location, country, content, metaTitle, and metaDescription.",
+        },
+        {
+          role: "user",
+          content: JSON.stringify({ source, webpage: text.slice(0, 12000) }),
+        },
+      ],
+    }),
+    cache: "no-store",
+  });
+
+  if (!response.ok) return null;
+  const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+  const content = payload.choices?.[0]?.message?.content;
+  if (!content) return null;
+
+  try {
+    const parsed = JSON.parse(content) as { items?: ExtractedListing[] };
+    return Array.isArray(parsed.items) ? parsed.items : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function scanSourcesForDrafts(sourceConfigs: SourceConfig[] = DEFAULT_SOURCE_CONFIGS) {
   const drafts: Array<{
     type: DraftType;
@@ -78,31 +134,40 @@ export async function scanSourcesForDrafts(sourceConfigs: SourceConfig[] = DEFAU
 
       const html = await res.text();
       const text = stripHtml(html);
-      const snippet = text.slice(0, 1200) || `${source.sourceName} listing`;
-      const title = toSentenceCase(source.sourceName);
-      const description = snippet.length > 3000 ? `${snippet.slice(0, 3000)}...` : snippet;
-      const deadline = extractDeadlineFromText(text);
-      const location = /pakistan|islamabad|lahore|karachi|rawalpindi|peshawar|multan|quetta|faisalabad|sindh|punjab|kpk|balochistan/i.test(text)
-        ? "Pakistan"
-        : null;
-      const country = "Pakistan";
-      const applyLink = source.sourceUrl;
-
-      drafts.push({
-        type: source.type,
-        sourceName: source.sourceName,
-        sourceUrl: source.sourceUrl,
-        title,
+      const aiItems = await extractListingsWithAi(text, source);
+      const items = aiItems?.length ? aiItems : [{
+        title: toSentenceCase(source.sourceName),
         organization: source.sourceName,
-        location,
-        country,
-        deadline: deadline ?? null,
-        description,
-        applyLink,
-        content: description,
-        metaTitle: `${title} - Pakistan`,
-        metaDescription: description.slice(0, 180),
-      });
+        location: /pakistan|islamabad|lahore|karachi|rawalpindi|peshawar|multan|quetta|faisalabad|sindh|punjab|kpk|balochistan/i.test(text) ? "Pakistan" : null,
+        country: "Pakistan",
+        deadline: extractDeadlineFromText(text)?.toISOString() || null,
+        description: (text.slice(0, 3000) || `${source.sourceName} listing`),
+        applyLink: source.sourceUrl,
+        content: text.slice(0, 3000),
+        metaTitle: `${toSentenceCase(source.sourceName)} - Pakistan`,
+        metaDescription: text.slice(0, 180),
+      }];
+
+      for (const item of items) {
+        const title = item.title?.trim();
+        if (!title || !item.description?.trim()) continue;
+        const deadline = item.deadline ? new Date(item.deadline) : null;
+        drafts.push({
+          type: source.type,
+          sourceName: source.sourceName,
+          sourceUrl: source.sourceUrl,
+          title,
+          organization: item.organization || source.sourceName,
+          location: item.location || "Pakistan",
+          country: item.country || "Pakistan",
+          deadline: deadline && !Number.isNaN(deadline.getTime()) ? deadline : null,
+          description: item.description,
+          applyLink: item.applyLink || source.sourceUrl,
+          content: item.content || item.description,
+          metaTitle: item.metaTitle || `${title} - Pakistan`,
+          metaDescription: item.metaDescription || item.description.slice(0, 180),
+        });
+      }
     } catch {
       // Ignore unreachable sources and continue with the rest.
     }
