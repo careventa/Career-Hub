@@ -74,16 +74,6 @@ export default function ContactPage() {
               <h2 className="text-lg font-semibold text-gray-900">Email</h2>
               <p className="text-gray-700">hello@careerhub.example</p>
             </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Phone</h2>
-              <p className="text-gray-700">+92 300 0000000</p>
-            </div>
-
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Location</h2>
-              <p className="text-gray-700">Lahore, Pakistan</p>
-            </div>
           </div>
         </div>
 
