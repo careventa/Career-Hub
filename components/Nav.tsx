@@ -13,6 +13,8 @@ export default function Nav() {
           <Link href="/scholarships" className="text-gray-700 hover:text-green-600">Scholarships</Link>
           <Link href="/admissions" className="text-gray-700 hover:text-green-600">Admissions</Link>
           <Link href="/career-guides" className="text-gray-700 hover:text-green-600">Career Guides</Link>
+          <Link href="/about" className="text-gray-700 hover:text-green-600">About</Link>
+          <Link href="/contact" className="text-gray-700 hover:text-green-600">Contact</Link>
           <Link href="/admin/login" className="text-gray-700 hover:text-green-600">Admin</Link>
         </nav>
         <div className="flex items-center gap-4">

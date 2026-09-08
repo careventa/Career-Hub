@@ -21,6 +21,35 @@ function getAuthHeaders() {
 
 type TabKey = "jobs" | "scholarships" | "admissions" | "career";
 
+type JobRecord = {
+  id: string;
+  title: string;
+  slug: string;
+  organization: string;
+  location: string;
+  deadline?: string | null;
+  description: string;
+  applyLink: string;
+};
+
+type ScholarshipRecord = {
+  id: string;
+  title: string;
+  slug: string;
+  country: string;
+  deadline?: string | null;
+  description: string;
+};
+
+type ArticleRecord = {
+  id?: string;
+  slug: string;
+  title: string;
+  content: string;
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+};
+
 type ArticleForm = {
   title: string;
   slug: string;
@@ -56,9 +85,9 @@ const blankArticle = {
 };
 
 export default function AdminContentPage() {
-  const { data: jobsData, mutate: mutateJobs } = useSWR("/api/jobs", fetcher);
-  const { data: scholarshipsData, mutate: mutateScholarships } = useSWR("/api/scholarships", fetcher);
-  const { data: articlesData, mutate: mutateArticles } = useSWR("/api/articles", fetcher);
+  const { data: jobsData, mutate: mutateJobs } = useSWR<{ jobs: JobRecord[] }>("/api/jobs", fetcher);
+  const { data: scholarshipsData, mutate: mutateScholarships } = useSWR<{ scholarships: ScholarshipRecord[] }>("/api/scholarships", fetcher);
+  const { data: articlesData, mutate: mutateArticles } = useSWR<{ articles: ArticleRecord[] }>("/api/articles", fetcher);
 
   const [activeTab, setActiveTab] = useState<TabKey>("jobs");
   const [jobForm, setJobForm] = useState(blankJob);
@@ -69,37 +98,14 @@ export default function AdminContentPage() {
   const [careerForm, setCareerForm] = useState<ArticleForm>({ ...blankArticle, slug: "career-guides", title: "Career Guides" });
   const [message, setMessage] = useState("");
 
+  const admissionsArticle = articlesData?.articles?.find((article) => article.slug === "admissions");
+  const careerArticle = articlesData?.articles?.find((article) => article.slug === "career-guides");
+
   useEffect(() => {
     if (typeof window !== "undefined" && !localStorage.getItem("adminToken")) {
       window.location.href = "/admin/login";
     }
   }, []);
-
-  useEffect(() => {
-    const admissionsArticle = articlesData?.articles?.find((article: any) => article.slug === "admissions");
-    if (admissionsArticle) {
-      setAdmissionsForm({
-        title: admissionsArticle.title || "Admissions",
-        slug: admissionsArticle.slug || "admissions",
-        content: admissionsArticle.content || "",
-        metaTitle: admissionsArticle.metaTitle || "Admissions",
-        metaDescription: admissionsArticle.metaDescription || "",
-      });
-    }
-  }, [articlesData]);
-
-  useEffect(() => {
-    const careerArticle = articlesData?.articles?.find((article: any) => article.slug === "career-guides");
-    if (careerArticle) {
-      setCareerForm({
-        title: careerArticle.title || "Career Guides",
-        slug: careerArticle.slug || "career-guides",
-        content: careerArticle.content || "",
-        metaTitle: careerArticle.metaTitle || "Career Guides",
-        metaDescription: careerArticle.metaDescription || "",
-      });
-    }
-  }, [articlesData]);
 
   async function submitJob(e: React.FormEvent) {
     e.preventDefault();
@@ -139,7 +145,7 @@ export default function AdminContentPage() {
     const res = await fetch(url, {
       method,
       headers: getAuthHeaders(),
-      body: JSON.stringify({ ...scholarshipForm, deadline: new Date(scholarshipForm.deadline) }),
+      body: JSON.stringify({ ...scholarshipForm, deadline: scholarshipForm.deadline ? new Date(scholarshipForm.deadline).toISOString() : null }),
     });
     if (res.ok) {
       setMessage("Scholarship saved.");
@@ -215,7 +221,7 @@ export default function AdminContentPage() {
           </form>
 
           <div className="space-y-3">
-            {jobsData?.jobs?.map((job: any) => (
+            {jobsData?.jobs?.map((job) => (
               <div key={job.id} className="border rounded p-4 flex flex-col md:flex-row md:justify-between md:items-start gap-2">
                 <div>
                   <h3 className="font-semibold">{job.title}</h3>
@@ -244,7 +250,7 @@ export default function AdminContentPage() {
           </form>
 
           <div className="space-y-3">
-            {scholarshipsData?.scholarships?.map((scholarship: any) => (
+            {scholarshipsData?.scholarships?.map((scholarship) => (
               <div key={scholarship.id} className="border rounded p-4 flex flex-col md:flex-row md:justify-between md:items-start gap-2">
                 <div>
                   <h3 className="font-semibold">{scholarship.title}</h3>
@@ -264,11 +270,11 @@ export default function AdminContentPage() {
         <section className="border rounded-xl p-6 shadow-sm">
           <h2 className="text-xl font-semibold mb-4">Admissions Page</h2>
           <form onSubmit={(e) => submitArticle(e, admissionsForm)} className="grid gap-3">
-            <input value={admissionsForm.title} onChange={(e) => setAdmissionsForm({ ...admissionsForm, title: e.target.value })} placeholder="Page title" className="border p-2" />
-            <input value={admissionsForm.slug} onChange={(e) => setAdmissionsForm({ ...admissionsForm, slug: e.target.value })} placeholder="Slug" className="border p-2" />
-            <input value={admissionsForm.metaTitle} onChange={(e) => setAdmissionsForm({ ...admissionsForm, metaTitle: e.target.value })} placeholder="Meta title" className="border p-2" />
-            <input value={admissionsForm.metaDescription} onChange={(e) => setAdmissionsForm({ ...admissionsForm, metaDescription: e.target.value })} placeholder="Meta description" className="border p-2" />
-            <textarea value={admissionsForm.content} onChange={(e) => setAdmissionsForm({ ...admissionsForm, content: e.target.value })} placeholder="Page content. Tip: use blank lines for paragraphs, - for bullet lists, and ### for headings." className="border p-2" rows={10} />
+            <input value={admissionsForm.title || admissionsArticle?.title || "Admissions"} onChange={(e) => setAdmissionsForm({ ...admissionsForm, title: e.target.value })} placeholder="Page title" className="border p-2" />
+            <input value={admissionsForm.slug || admissionsArticle?.slug || "admissions"} onChange={(e) => setAdmissionsForm({ ...admissionsForm, slug: e.target.value })} placeholder="Slug" className="border p-2" />
+            <input value={admissionsForm.metaTitle || admissionsArticle?.metaTitle || "Admissions"} onChange={(e) => setAdmissionsForm({ ...admissionsForm, metaTitle: e.target.value })} placeholder="Meta title" className="border p-2" />
+            <input value={admissionsForm.metaDescription || admissionsArticle?.metaDescription || ""} onChange={(e) => setAdmissionsForm({ ...admissionsForm, metaDescription: e.target.value })} placeholder="Meta description" className="border p-2" />
+            <textarea value={admissionsForm.content || admissionsArticle?.content || ""} onChange={(e) => setAdmissionsForm({ ...admissionsForm, content: e.target.value })} placeholder="Page content. Tip: use blank lines for paragraphs, - for bullet lists, and ### for headings." className="border p-2" rows={10} />
             <button className="bg-blue-600 text-white py-2 px-4 rounded">Save Admissions Content</button>
           </form>
         </section>
@@ -278,11 +284,11 @@ export default function AdminContentPage() {
         <section className="border rounded-xl p-6 shadow-sm">
           <h2 className="text-xl font-semibold mb-4">Career Guides Page</h2>
           <form onSubmit={(e) => submitArticle(e, careerForm)} className="grid gap-3">
-            <input value={careerForm.title} onChange={(e) => setCareerForm({ ...careerForm, title: e.target.value })} placeholder="Page title" className="border p-2" />
-            <input value={careerForm.slug} onChange={(e) => setCareerForm({ ...careerForm, slug: e.target.value })} placeholder="Slug" className="border p-2" />
-            <input value={careerForm.metaTitle} onChange={(e) => setCareerForm({ ...careerForm, metaTitle: e.target.value })} placeholder="Meta title" className="border p-2" />
-            <input value={careerForm.metaDescription} onChange={(e) => setCareerForm({ ...careerForm, metaDescription: e.target.value })} placeholder="Meta description" className="border p-2" />
-            <textarea value={careerForm.content} onChange={(e) => setCareerForm({ ...careerForm, content: e.target.value })} placeholder="Page content. Tip: use blank lines for paragraphs, - for bullet lists, and ### for headings." className="border p-2" rows={10} />
+            <input value={careerForm.title || careerArticle?.title || "Career Guides"} onChange={(e) => setCareerForm({ ...careerForm, title: e.target.value })} placeholder="Page title" className="border p-2" />
+            <input value={careerForm.slug || careerArticle?.slug || "career-guides"} onChange={(e) => setCareerForm({ ...careerForm, slug: e.target.value })} placeholder="Slug" className="border p-2" />
+            <input value={careerForm.metaTitle || careerArticle?.metaTitle || "Career Guides"} onChange={(e) => setCareerForm({ ...careerForm, metaTitle: e.target.value })} placeholder="Meta title" className="border p-2" />
+            <input value={careerForm.metaDescription || careerArticle?.metaDescription || ""} onChange={(e) => setCareerForm({ ...careerForm, metaDescription: e.target.value })} placeholder="Meta description" className="border p-2" />
+            <textarea value={careerForm.content || careerArticle?.content || ""} onChange={(e) => setCareerForm({ ...careerForm, content: e.target.value })} placeholder="Page content. Tip: use blank lines for paragraphs, - for bullet lists, and ### for headings." className="border p-2" rows={10} />
             <button className="bg-blue-600 text-white py-2 px-4 rounded">Save Career Guides Content</button>
           </form>
         </section>
