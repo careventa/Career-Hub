@@ -8,7 +8,6 @@ export default function Hero() {
           <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600">Discover jobs, scholarships, university admissions, and practical career guidance in one focused place.</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a href="/jobs" className="rounded-xl bg-emerald-700 px-5 py-3 font-semibold text-white shadow-lg shadow-emerald-700/20 transition hover:bg-emerald-800">Explore opportunities</a>
-            <a href="/career-guides" className="rounded-xl border border-slate-300 bg-white px-5 py-3 font-semibold text-slate-700 transition hover:border-emerald-600 hover:text-emerald-700">Read career guides</a>
           </div>
         </div>
       </div>

@@ -33,7 +33,7 @@ export default function FaqChat() {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-50">
+    <div className="fixed bottom-20 right-5 z-50 sm:bottom-6">
       {open ? (
         <section className="mb-3 flex w-[min(360px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" aria-label="CareerHub FAQ assistant">
           <div className="bg-slate-950 px-5 py-4 text-white">
