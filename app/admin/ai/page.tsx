@@ -45,6 +45,7 @@ export default function AdminAIAutomationPage() {
   const [message, setMessage] = useState("");
   const [activeFilter, setActiveFilter] = useState<"all" | DraftType>("all");
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [previewDraft, setPreviewDraft] = useState<AiDraft | null>(null);
 
   const fetchDrafts = useCallback(async () => {
     const token = localStorage.getItem("adminToken");
@@ -187,6 +188,7 @@ export default function AdminAIAutomationPage() {
                     <p className="text-sm text-gray-600">{draft.organization || draft.sourceName}</p>
                   </div>
                   <div className="flex gap-2 flex-wrap">
+                    <button onClick={() => setPreviewDraft(draft)} className="bg-white border border-slate-300 text-slate-700 px-3 py-1.5 rounded text-sm">Preview</button>
                     <button disabled={busyAction !== null} onClick={() => updateStatus(draft.id, "approved")} className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50">
                       {busyAction === `approved:${draft.id}` ? "Approving..." : "Approve"}
                     </button>
@@ -219,6 +221,18 @@ export default function AdminAIAutomationPage() {
           )}
         </div>
       )}
+
+      {previewDraft ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-label="Draft preview">
+          <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Preview before publishing</p><h2 className="mt-2 text-2xl font-bold text-slate-950">{previewDraft.title}</h2><p className="mt-1 text-sm text-slate-500">{previewDraft.organization || previewDraft.sourceName}</p></div><button onClick={() => setPreviewDraft(null)} className="text-2xl text-slate-500" aria-label="Close preview">×</button></div>
+            <div className="mt-6 grid gap-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-700 md:grid-cols-2"><div><strong>Category:</strong> {previewDraft.type}</div><div><strong>Status:</strong> {previewDraft.status}</div><div><strong>Location:</strong> {previewDraft.location || previewDraft.country || "Pakistan"}</div><div><strong>Deadline:</strong> {previewDraft.deadline ? new Date(previewDraft.deadline).toLocaleDateString() : "Not stated"}</div></div>
+            <div className="mt-6 whitespace-pre-line text-sm leading-7 text-slate-700">{previewDraft.description}</div>
+            {previewDraft.applyLink ? <a href={previewDraft.applyLink} target="_blank" rel="noreferrer" className="mt-6 inline-block font-semibold text-emerald-700 underline">Open official source / application</a> : null}
+            <div className="mt-7 flex justify-end gap-3"><button onClick={() => setPreviewDraft(null)} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Close</button><button disabled={busyAction !== null} onClick={() => { setPreviewDraft(null); void updateStatus(previewDraft.id, "approved"); }} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">Approve from preview</button></div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

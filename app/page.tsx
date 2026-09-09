@@ -24,10 +24,12 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="container mx-auto px-6 py-12 bg-gray-50">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl font-bold mb-4">Career Guides</h2>
-          <p className="text-gray-700">Practical advice, templates, and guides to level up your career search and applications.</p>
+      <section className="border-y border-emerald-100 bg-emerald-50/70">
+        <div className="mx-auto grid max-w-7xl gap-8 px-5 py-14 md:grid-cols-3 lg:px-8">
+          <div className="md:col-span-3"><p className="text-sm font-bold uppercase tracking-[0.18em] text-emerald-700">A clearer way forward</p><h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-950">Less searching. More applying.</h2></div>
+          <div><div className="text-2xl font-bold text-emerald-700">01</div><h3 className="mt-3 font-bold text-slate-950">Fresh opportunities</h3><p className="mt-2 text-sm leading-6 text-slate-600">Open roles, admissions, and scholarships are organized by what matters: deadline, source, and next action.</p></div>
+          <div><div className="text-2xl font-bold text-emerald-700">02</div><h3 className="mt-3 font-bold text-slate-950">Official sources</h3><p className="mt-2 text-sm leading-6 text-slate-600">Every listing points back to its original institution, employer, or application page for verification.</p></div>
+          <div><div className="text-2xl font-bold text-emerald-700">03</div><h3 className="mt-3 font-bold text-slate-950">One focused hub</h3><p className="mt-2 text-sm leading-6 text-slate-600">Use the categories and quick assistant to move from discovery to a confident application.</p></div>
         </div>
       </section>
     </main>

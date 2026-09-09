@@ -17,6 +17,8 @@ type ExtractedListing = {
   content?: string | null;
   metaTitle?: string | null;
   metaDescription?: string | null;
+  isOpen?: boolean | null;
+  status?: string | null;
 };
 
 export const DEFAULT_SOURCE_CONFIGS: SourceConfig[] = [
@@ -121,6 +123,28 @@ function toSentenceCase(value: string) {
     .trim();
 }
 
+function cleanListingTitle(value: string) {
+  const cities = "Islamabad|Lahore|Karachi|Rawalpindi|Peshawar|Quetta|Multan|Faisalabad|Gujranwala|Sialkot|Hyderabad|Bahawalpur|Sukkur|Abbottabad|Mardan|Mingora";
+  return value
+    .replace(new RegExp(`\\s*[-|,:()]?\\s*\\b(${cities})\\b\\s*[-|,:()]?\\s*`, "gi"), " ")
+    .replace(/\s+/g, " ")
+    .replace(/^[-|,:]+|[-|,:]+$/g, "")
+    .trim();
+}
+
+function isOpenListing(item: ExtractedListing, deadline: Date | null) {
+  if (item.isOpen === false) return false;
+  if (item.status && /closed|expired|filled|not accepting|ended/i.test(item.status)) return false;
+  if (/closed|expired|position filled|applications? (are )?closed|admissions? ended/i.test(`${item.title} ${item.description}`)) return false;
+  return !(deadline && deadline.getTime() < Date.now());
+}
+
+function nearbyDetail(text: string, title: string) {
+  const index = text.toLowerCase().indexOf(title.toLowerCase());
+  if (index < 0) return text.slice(0, 2200);
+  return text.slice(Math.max(0, index - 350), Math.min(text.length, index + 2600)).trim();
+}
+
 function extractDeadlineFromText(value: string) {
   const match = value.match(/(\d{1,2}[-/ ](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-zA-Z]*[-/ ]\d{2,4}|\d{1,2}[-/ ]\d{1,2}[-/ ]\d{2,4})/i);
   if (!match) return null;
@@ -140,7 +164,7 @@ async function extractListingsWithAi(text: string, pageLinks: Array<{ title: str
     body: JSON.stringify({
       systemInstruction: {
         parts: [{
-          text: "Extract each distinct real Pakistan job, scholarship, admission opportunity, or career guide from the supplied webpage. Return one item per distinct opportunity, never one item for the whole website. Use the exact matching URL from pageLinks as applyLink. Never use the source homepage as applyLink when a specific listing URL exists. Do not invent data. Use null when unknown. Return JSON with an items array; each item must have title, description, deadline, applyLink, organization, location, country, content, metaTitle, and metaDescription.",
+          text: "Extract only currently open Pakistan opportunities from the supplied webpage: government or private vacancies, university admissions, scholarships, or career programs. Return one item per distinct opportunity, never one item for the whole website. Exclude closed, expired, filled, archived, or announcement-only items. The title must contain only the job/program/scholarship name, never a city name. Include complete factual details in description: organization, role or program, eligibility, education/experience, documents, fee if stated, deadline, and how to apply. Use the exact matching URL from pageLinks as applyLink. Never use the source homepage as applyLink when a specific listing URL exists. Do not invent data. Use null when unknown. Return JSON with an items array and isOpen/status fields.",
         }],
       },
       contents: [
@@ -199,24 +223,25 @@ export async function scanSourcesForDrafts(sourceConfigs: SourceConfig[] = DEFAU
       const text = stripHtml(html);
       const pageLinks = extractPageLinks(html, source.sourceUrl);
       const aiItems = await extractListingsWithAi(text, pageLinks, source);
-      const items = aiItems?.length ? aiItems : pageLinks.map((link) => ({
+      const items: ExtractedListing[] = aiItems?.length ? aiItems : pageLinks.filter((link) => !/closed|expired|archive|past papers|results/i.test(link.title)).map((link) => ({
         title: link.title,
         organization: source.sourceName,
         location: "Pakistan",
         country: "Pakistan",
         deadline: null,
-        description: `Review this ${source.type.replace("_", " ")} from ${source.sourceName}.`,
+        description: nearbyDetail(text, link.title),
         applyLink: link.url,
         content: link.title,
         metaTitle: `${link.title} - Pakistan`,
-        metaDescription: `Potential ${source.type.replace("_", " ")} from ${source.sourceName}.`,
+        metaDescription: nearbyDetail(text, link.title).slice(0, 180),
+        isOpen: true,
       }));
 
       if (items.length === 0) {
         items.push({
           title: toSentenceCase(source.sourceName),
           organization: source.sourceName,
-          location: /pakistan|islamabad|lahore|karachi|rawalpindi|peshawar|multan|quetta|faisalabad|sindh|punjab|kpk|balochistan/i.test(text) ? "Pakistan" : null,
+          location: "Pakistan",
           country: "Pakistan",
           deadline: extractDeadlineFromText(text)?.toISOString() || null,
           description: (text.slice(0, 3000) || `${source.sourceName} listing`),
@@ -228,9 +253,10 @@ export async function scanSourcesForDrafts(sourceConfigs: SourceConfig[] = DEFAU
       }
 
       for (const item of items) {
-        const title = item.title?.trim();
+        const title = cleanListingTitle(item.title || "");
         if (!title || !item.description?.trim()) continue;
         const deadline = item.deadline ? new Date(item.deadline) : null;
+        if (!isOpenListing(item, deadline)) continue;
         drafts.push({
           type: source.type,
           sourceName: source.sourceName,
