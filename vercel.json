@@ -1,5 +1,5 @@
 {
-  "buildCommand": "prisma migrate deploy && npm run build",
+  "buildCommand": "npm run migrate:deploy && npm run build",
   "installCommand": "npm install",
   "framework": "nextjs",
   "crons": [{ "path": "/api/cron/ai-sync", "schedule": "0 3 * * *" }]
