@@ -11,7 +11,7 @@ export default function FaqChat() {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "assistant", text: "Hi. Ask me about jobs, scholarships, admissions, or career guides." },
+    { role: "assistant", text: "Hi. Ask me about jobs, scholarships, or admissions." },
   ]);
 
   async function ask(event: FormEvent) {

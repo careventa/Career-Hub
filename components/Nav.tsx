@@ -13,7 +13,6 @@ export default function Nav() {
           <Link href="/jobs" className="transition hover:text-emerald-700">Jobs</Link>
           <Link href="/scholarships" className="transition hover:text-emerald-700">Scholarships</Link>
           <Link href="/admissions" className="transition hover:text-emerald-700">Admissions</Link>
-          <Link href="/career-guides" className="transition hover:text-emerald-700">Career Guides</Link>
           <Link href="/about" className="transition hover:text-emerald-700">About</Link>
           <Link href="/contact" className="transition hover:text-emerald-700">Contact</Link>
         </nav>

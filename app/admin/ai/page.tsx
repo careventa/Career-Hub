@@ -7,7 +7,6 @@ const tabs = [
   { key: "private_job", label: "Private Jobs" },
   { key: "scholarship", label: "Scholarships" },
   { key: "admission", label: "Admissions" },
-  { key: "career_guide", label: "Career Guide" },
 ] as const;
 
 type DraftStatus = "pending_review" | "approved" | "published" | "rejected";

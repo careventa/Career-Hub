@@ -14,14 +14,13 @@ export async function POST(req: Request) {
     const query = question?.trim();
     if (!query) return NextResponse.json({ error: "Ask a question" }, { status: 400 });
 
-    const [jobs, scholarships, admissions, careerGuides] = await Promise.all([
+    const [jobs, scholarships, admissions] = await Promise.all([
       prisma.job.findMany({ where: { OR: [{ title: { contains: query, mode: "insensitive" } }, { description: { contains: query, mode: "insensitive" } }] }, take: 4 }),
       prisma.scholarship.findMany({ where: { OR: [{ title: { contains: query, mode: "insensitive" } }, { description: { contains: query, mode: "insensitive" } }] }, take: 4 }),
       prisma.article.findMany({ where: { OR: [{ title: { contains: query, mode: "insensitive" } }, { content: { contains: query, mode: "insensitive" } }] }, take: 2 }),
-      prisma.article.findMany({ where: { slug: "career-guides" }, take: 1 }),
     ]);
 
-    const context = JSON.stringify({ jobs, scholarships, admissions, careerGuides, faqs: fallbackFaqs });
+    const context = JSON.stringify({ jobs, scholarships, admissions, faqs: fallbackFaqs });
     const apiKey = process.env.AI_API_KEY;
     if (apiKey) {
       const model = process.env.AI_MODEL || "gemini-2.0-flash";
@@ -43,7 +42,7 @@ export async function POST(req: Request) {
     }
 
     const matches = [...jobs.map((job) => `Job: ${job.title} at ${job.organization}.`), ...scholarships.map((item) => `Scholarship: ${item.title} in ${item.country}.`)];
-    return NextResponse.json({ answer: matches.length ? matches.join(" ") : fallbackFaqs.find((item) => query.toLowerCase().includes(item.question.toLowerCase().split(" ")[0]))?.answer || "I could not find a matching item yet. Try asking about jobs, scholarships, admissions, or career guides." });
+    return NextResponse.json({ answer: matches.length ? matches.join(" ") : fallbackFaqs.find((item) => query.toLowerCase().includes(item.question.toLowerCase().split(" ")[0]))?.answer || "I could not find a matching item yet. Try asking about jobs, scholarships, or admissions." });
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to answer right now" }, { status: 500 });
   }

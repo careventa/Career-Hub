@@ -96,11 +96,9 @@ export default function AdminContentPage() {
   const [scholarshipForm, setScholarshipForm] = useState(blankScholarship);
   const [editingScholarshipId, setEditingScholarshipId] = useState<string | null>(null);
   const [admissionsForm, setAdmissionsForm] = useState<ArticleForm>({ ...blankArticle, slug: "admissions", title: "Admissions" });
-  const [careerForm, setCareerForm] = useState<ArticleForm>({ ...blankArticle, slug: "career-guides", title: "Career Guides" });
   const [message, setMessage] = useState("");
 
   const admissionsArticle = articlesData?.articles?.find((article) => article.slug === "admissions");
-  const careerArticle = articlesData?.articles?.find((article) => article.slug === "career-guides");
 
   useEffect(() => {
     if (typeof window !== "undefined" && !localStorage.getItem("adminToken")) {
@@ -184,7 +182,6 @@ export default function AdminContentPage() {
     { key: "jobs", label: "Jobs" },
     { key: "scholarships", label: "Scholarships" },
     { key: "admissions", label: "Admissions" },
-    { key: "career", label: "Career Guides" },
   ];
 
   return (
@@ -192,7 +189,7 @@ export default function AdminContentPage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Admin Content Dashboard</h1>
-          <p className="text-gray-600 mt-2">Manage jobs, scholarships, admissions guidance, and career guides from one place.</p>
+          <p className="text-gray-600 mt-2">Manage jobs, scholarships, and admissions from one place.</p>
         </div>
         <Link href="/admin/ai" className="inline-flex w-fit items-center rounded bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800">
           AI Automation
@@ -289,19 +286,6 @@ export default function AdminContentPage() {
         </section>
       ) : null}
 
-      {activeTab === "career" ? (
-        <section className="border rounded-xl p-6 shadow-sm">
-          <h2 className="text-xl font-semibold mb-4">Career Guides Page</h2>
-          <form onSubmit={(e) => submitArticle(e, careerForm)} className="grid gap-3">
-            <input value={careerForm.title || careerArticle?.title || "Career Guides"} onChange={(e) => setCareerForm({ ...careerForm, title: e.target.value })} placeholder="Page title" className="border p-2" />
-            <input value={careerForm.slug || careerArticle?.slug || "career-guides"} onChange={(e) => setCareerForm({ ...careerForm, slug: e.target.value })} placeholder="Slug" className="border p-2" />
-            <input value={careerForm.metaTitle || careerArticle?.metaTitle || "Career Guides"} onChange={(e) => setCareerForm({ ...careerForm, metaTitle: e.target.value })} placeholder="Meta title" className="border p-2" />
-            <input value={careerForm.metaDescription || careerArticle?.metaDescription || ""} onChange={(e) => setCareerForm({ ...careerForm, metaDescription: e.target.value })} placeholder="Meta description" className="border p-2" />
-            <textarea value={careerForm.content || careerArticle?.content || ""} onChange={(e) => setCareerForm({ ...careerForm, content: e.target.value })} placeholder="Page content. Tip: use blank lines for paragraphs, - for bullet lists, and ### for headings." className="border p-2" rows={10} />
-            <button className="bg-blue-600 text-white py-2 px-4 rounded">Save Career Guides Content</button>
-          </form>
-        </section>
-      ) : null}
     </div>
   );
 }

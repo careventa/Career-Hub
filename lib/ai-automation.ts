@@ -1,4 +1,4 @@
-export type DraftType = "government_job" | "private_job" | "scholarship" | "admission" | "career_guide";
+export type DraftType = "government_job" | "private_job" | "scholarship" | "admission";
 
 export type SourceConfig = {
   type: DraftType;
@@ -58,9 +58,6 @@ export const DEFAULT_SOURCE_CONFIGS: SourceConfig[] = [
   { type: "admission", sourceName: "Aga Khan University Admissions", sourceUrl: "https://www.aku.edu/admissions/Pages/home.aspx" },
   { type: "admission", sourceName: "Institute of Business Administration Karachi Admissions", sourceUrl: "https://www.iba.edu.pk/admissions.php" },
   { type: "admission", sourceName: "University of Agriculture Faisalabad Admissions", sourceUrl: "https://uaf.edu.pk/admissions/" },
-  { type: "career_guide", sourceName: "Career Guidance Pakistan", sourceUrl: "https://www.careerpakistan.pk/" },
-  { type: "career_guide", sourceName: "NAVTTC Pakistan", sourceUrl: "https://navttc.gov.pk/" },
-  { type: "career_guide", sourceName: "DigiSkills Pakistan", sourceUrl: "https://digiskills.pk/" },
 ];
 
 export function slugify(value: string) {

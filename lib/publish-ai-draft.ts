@@ -28,9 +28,9 @@ export async function publishAiDraft(draftId: string) {
         applyLink: draft.applyLink || draft.sourceUrl || null,
       },
     });
-  } else if (draft.type === "admission" || draft.type === "career_guide") {
-    const slug = draft.type === "admission" ? "admissions" : "career-guides";
-    const fallbackTitle = draft.type === "admission" ? "Admissions" : "Career Guides";
+  } else if (draft.type === "admission") {
+    const slug = "admissions";
+    const fallbackTitle = "Admissions";
     await prisma.article.upsert({
       where: { slug },
       update: {

@@ -5,7 +5,6 @@ export default function Categories() {
     { href: "/jobs", label: "Jobs" },
     { href: "/scholarships", label: "Scholarships" },
     { href: "/admissions", label: "Admissions" },
-    { href: "/career-guides", label: "Career Guides" },
   ];
 
   return (
