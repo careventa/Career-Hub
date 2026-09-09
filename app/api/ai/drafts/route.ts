@@ -12,7 +12,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const drafts = await prisma.aiDraft.findMany({ orderBy: { createdAt: "desc" } });
+  const drafts = await prisma.aiDraft.findMany({ where: { status: { not: "published" } }, orderBy: { createdAt: "desc" } });
   return NextResponse.json({ drafts });
 }
 

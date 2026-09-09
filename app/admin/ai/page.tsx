@@ -151,6 +151,32 @@ export default function AdminAIAutomationPage() {
     }
   };
 
+  const runBulkAction = async (action: "approve" | "publish") => {
+    const eligible = filteredDrafts.filter((draft) => action === "approve" ? draft.status === "pending_review" : draft.status === "approved");
+    if (!eligible.length) {
+      setMessage(action === "approve" ? "No pending drafts to approve." : "No approved drafts to publish.");
+      return;
+    }
+    const label = action === "approve" ? "approve" : "publish and remove";
+    if (!window.confirm(`Are you sure you want to ${label} ${eligible.length} drafts?`)) return;
+    setBusyAction(`bulk:${action}`);
+    try {
+      const response = await fetch("/api/ai/bulk", {
+        method: "POST",
+        headers: await getAuthHeaders(),
+        body: JSON.stringify({ action, draftIds: eligible.map((draft) => draft.id) }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok && response.status !== 207) throw new Error(data.error || "Bulk action failed.");
+      setMessage(data.message || `Bulk ${action} completed.`);
+      await fetchDrafts();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Bulk action failed.");
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
   return (
     <div className="container mx-auto px-6 py-12 space-y-8">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -158,7 +184,11 @@ export default function AdminAIAutomationPage() {
           <h1 className="text-3xl font-bold">AI Automation Dashboard</h1>
           <p className="text-gray-600 mt-2">Automatically detect openings across Pakistan and review them before final publishing.</p>
         </div>
-        <button onClick={refreshFromSources} className="bg-green-700 text-white px-4 py-2 rounded">Scan Sources</button>
+        <div className="flex flex-wrap gap-2">
+          <button disabled={busyAction !== null} onClick={refreshFromSources} className="bg-green-700 text-white px-4 py-2 rounded disabled:opacity-50">Scan Sources</button>
+          <button disabled={busyAction !== null} onClick={() => void runBulkAction("approve")} className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50">{busyAction === "bulk:approve" ? "Approving all..." : "Approve All"}</button>
+          <button disabled={busyAction !== null} onClick={() => void runBulkAction("publish")} className="bg-slate-950 text-white px-4 py-2 rounded disabled:opacity-50">{busyAction === "bulk:publish" ? "Publishing all..." : "Publish All"}</button>
+        </div>
       </div>
 
       {message ? <p className="text-sm text-green-700">{message}</p> : null}
