@@ -14,7 +14,7 @@ export async function GET() {
     [jobs, scholarships, articles] = await Promise.all([
       prisma.job.findMany({ select: { slug: true } }),
       prisma.scholarship.findMany({ select: { slug: true } }),
-      prisma.article.findMany({ select: { slug: true } }),
+      prisma.article.findMany({ where: { slug: { not: "career-guides" } }, select: { slug: true } }),
     ]);
   } catch (error) {
     console.warn("Sitemap data unavailable, serving fallback URLs:", error);
