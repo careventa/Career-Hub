@@ -12,9 +12,14 @@ export async function POST(req: Request) {
   if (!isAdmin(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const body = await req.json() as { action?: "approve" | "publish"; draftIds?: string[] };
+    const body = await req.json() as { action?: "approve" | "publish" | "delete"; draftIds?: string[] };
     const draftIds = Array.isArray(body.draftIds) ? body.draftIds : [];
     if (!draftIds.length || !body.action) return NextResponse.json({ error: "Choose an action and at least one draft" }, { status: 400 });
+
+    if (body.action === "delete") {
+      const result = await prisma.aiDraft.deleteMany({ where: { id: { in: draftIds } } });
+      return NextResponse.json({ ok: true, count: result.count, message: `${result.count} drafts deleted.` });
+    }
 
     if (body.action === "approve") {
       const result = await prisma.aiDraft.updateMany({

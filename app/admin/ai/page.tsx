@@ -46,6 +46,7 @@ export default function AdminAIAutomationPage() {
   const [activeFilter, setActiveFilter] = useState<"all" | DraftType>("all");
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [previewDraft, setPreviewDraft] = useState<AiDraft | null>(null);
+  const [selectedDraftIds, setSelectedDraftIds] = useState<string[]>([]);
 
   const fetchDrafts = useCallback(async () => {
     const token = localStorage.getItem("adminToken");
@@ -63,6 +64,7 @@ export default function AdminAIAutomationPage() {
 
     const data = await res.json();
     setDrafts(data.drafts || []);
+    setSelectedDraftIds([]);
     setLoading(false);
   }, []);
 
@@ -151,13 +153,14 @@ export default function AdminAIAutomationPage() {
     }
   };
 
-  const runBulkAction = async (action: "approve" | "publish") => {
-    const eligible = filteredDrafts.filter((draft) => action === "approve" ? draft.status === "pending_review" : draft.status === "approved");
+  const runBulkAction = async (action: "approve" | "publish" | "delete") => {
+    const selected = filteredDrafts.filter((draft) => selectedDraftIds.includes(draft.id));
+    const eligible = action === "delete" ? selected : selected.filter((draft) => action === "approve" ? draft.status === "pending_review" : draft.status === "approved");
     if (!eligible.length) {
-      setMessage(action === "approve" ? "No pending drafts to approve." : "No approved drafts to publish.");
+      setMessage(action === "delete" ? "Select drafts to delete." : action === "approve" ? "Select pending drafts to approve." : "Select approved drafts to publish.");
       return;
     }
-    const label = action === "approve" ? "approve" : "publish and remove";
+    const label = action === "approve" ? "approve" : action === "publish" ? "publish and remove" : "delete";
     if (!window.confirm(`Are you sure you want to ${label} ${eligible.length} drafts?`)) return;
     setBusyAction(`bulk:${action}`);
     try {
@@ -186,8 +189,10 @@ export default function AdminAIAutomationPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <button disabled={busyAction !== null} onClick={refreshFromSources} className="bg-green-700 text-white px-4 py-2 rounded disabled:opacity-50">Scan Sources</button>
-          <button disabled={busyAction !== null} onClick={() => void runBulkAction("approve")} className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50">{busyAction === "bulk:approve" ? "Approving all..." : "Approve All"}</button>
-          <button disabled={busyAction !== null} onClick={() => void runBulkAction("publish")} className="bg-slate-950 text-white px-4 py-2 rounded disabled:opacity-50">{busyAction === "bulk:publish" ? "Publishing all..." : "Publish All"}</button>
+          <button disabled={busyAction !== null} onClick={() => setSelectedDraftIds(filteredDrafts.map((draft) => draft.id))} className="border border-slate-300 bg-white px-4 py-2 rounded disabled:opacity-50">Select visible</button>
+          <button disabled={busyAction !== null || selectedDraftIds.length === 0} onClick={() => void runBulkAction("approve")} className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50">{busyAction === "bulk:approve" ? "Approving..." : "Approve selected"}</button>
+          <button disabled={busyAction !== null || selectedDraftIds.length === 0} onClick={() => void runBulkAction("publish")} className="bg-slate-950 text-white px-4 py-2 rounded disabled:opacity-50">{busyAction === "bulk:publish" ? "Publishing..." : "Publish selected"}</button>
+          <button disabled={busyAction !== null || selectedDraftIds.length === 0} onClick={() => void runBulkAction("delete")} className="bg-red-600 text-white px-4 py-2 rounded disabled:opacity-50">{busyAction === "bulk:delete" ? "Deleting..." : "Delete selected"}</button>
         </div>
       </div>
 
@@ -202,6 +207,8 @@ export default function AdminAIAutomationPage() {
         ))}
       </div>
 
+      <p className="text-sm text-slate-600">{selectedDraftIds.length} selected. Choose individual listings below, then use a selected action.</p>
+
       {loading ? (
         <p>Loading AI queue...</p>
       ) : (
@@ -213,6 +220,7 @@ export default function AdminAIAutomationPage() {
               <article key={draft.id} className="border rounded-xl p-5 shadow-sm space-y-4">
                 <div className="flex flex-col md:flex-row md:justify-between gap-3">
                   <div>
+                    <label className="mb-2 flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={selectedDraftIds.includes(draft.id)} onChange={(event) => setSelectedDraftIds((current) => event.target.checked ? [...current, draft.id] : current.filter((id) => id !== draft.id))} /> Select listing</label>
                     <div className="text-xs uppercase tracking-wide text-green-700">{draft.type}</div>
                     <h2 className="text-xl font-semibold">{draft.title}</h2>
                     <p className="text-sm text-gray-600">{draft.organization || draft.sourceName}</p>

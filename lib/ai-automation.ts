@@ -141,8 +141,12 @@ function isOpenListing(item: ExtractedListing, deadline: Date | null) {
 
 function nearbyDetail(text: string, title: string) {
   const index = text.toLowerCase().indexOf(title.toLowerCase());
-  if (index < 0) return text.slice(0, 2200);
-  return text.slice(Math.max(0, index - 350), Math.min(text.length, index + 2600)).trim();
+  if (index < 0) return text.slice(0, 1200);
+  return text.slice(Math.max(0, index - 200), Math.min(text.length, index + 1400)).trim();
+}
+
+function conciseDescription(value: string) {
+  return value.replace(/\s+/g, " ").trim().slice(0, 3500);
 }
 
 function extractDeadlineFromText(value: string) {
@@ -164,7 +168,7 @@ async function extractListingsWithAi(text: string, pageLinks: Array<{ title: str
     body: JSON.stringify({
       systemInstruction: {
         parts: [{
-          text: "Extract only currently open Pakistan opportunities from the supplied webpage: government or private vacancies, university admissions, scholarships, or career programs. Return one item per distinct opportunity, never one item for the whole website. Exclude closed, expired, filled, archived, or announcement-only items. The title must contain only the job/program/scholarship name, never a city name. Include complete factual details in description: organization, role or program, eligibility, education/experience, documents, fee if stated, deadline, and how to apply. Use the exact matching URL from pageLinks as applyLink. Never use the source homepage as applyLink when a specific listing URL exists. Do not invent data. Use null when unknown. Return JSON with an items array and isOpen/status fields.",
+          text: "Extract only currently open Pakistan opportunities from the supplied webpage: government or private vacancies, university admissions, scholarships, or career programs. Return one item per distinct opportunity, never one item for the whole website. Exclude closed, expired, filled, archived, duplicate, or announcement-only items. The title must contain only the job/program/scholarship name, never a city name. Keep each description concise and factual, maximum 3500 characters, containing only the organization, role or program, eligibility, education/experience, documents, fee if stated, deadline, and how to apply. Do not copy the whole webpage or navigation. Use the exact matching URL from pageLinks as applyLink. Never use the source homepage as applyLink when a specific listing URL exists. Do not invent data. Use null when unknown. Return JSON with an items array and isOpen/status fields.",
         }],
       },
       contents: [
@@ -266,9 +270,9 @@ export async function scanSourcesForDrafts(sourceConfigs: SourceConfig[] = DEFAU
           location: item.location || "Pakistan",
           country: item.country || "Pakistan",
           deadline: deadline && !Number.isNaN(deadline.getTime()) ? deadline : null,
-          description: item.description,
+          description: conciseDescription(item.description),
           applyLink: chooseSpecificLink(item.applyLink, pageLinks, source.sourceUrl),
-          content: item.content || item.description,
+          content: conciseDescription(item.content || item.description),
           metaTitle: item.metaTitle || `${title} - Pakistan`,
           metaDescription: item.metaDescription || item.description.slice(0, 180),
         });
