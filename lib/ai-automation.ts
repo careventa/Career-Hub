@@ -22,12 +22,40 @@ type ExtractedListing = {
 export const DEFAULT_SOURCE_CONFIGS: SourceConfig[] = [
   { type: "government_job", sourceName: "FPSC Jobs", sourceUrl: "https://www.fpsc.gov.pk/jobs/" },
   { type: "government_job", sourceName: "Punjab Public Service Commission", sourceUrl: "https://ppsc.gop.pk/" },
+  { type: "government_job", sourceName: "Sindh Public Service Commission", sourceUrl: "https://spsc.gov.pk/" },
+  { type: "government_job", sourceName: "Khyber Pakhtunkhwa Public Service Commission", sourceUrl: "https://kppsc.gov.pk/" },
+  { type: "government_job", sourceName: "Balochistan Public Service Commission", sourceUrl: "https://bpsc.gob.pk/" },
+  { type: "government_job", sourceName: "Azad Jammu and Kashmir Public Service Commission", sourceUrl: "https://ajkpsc.gov.pk/" },
+  { type: "government_job", sourceName: "National Jobs Portal Pakistan", sourceUrl: "https://njp.gov.pk/" },
+  { type: "government_job", sourceName: "Pakistan Army Jobs", sourceUrl: "https://www.joinpakarmy.gov.pk/" },
+  { type: "government_job", sourceName: "Pakistan Navy Jobs", sourceUrl: "https://www.joinpaknavy.gov.pk/" },
+  { type: "government_job", sourceName: "Pakistan Air Force Jobs", sourceUrl: "https://joinpaf.gov.pk/" },
   { type: "private_job", sourceName: "NTS Jobs", sourceUrl: "https://www.nts.org.pk/" },
   { type: "private_job", sourceName: "Rozee.pk", sourceUrl: "https://www.rozee.pk/" },
+  { type: "private_job", sourceName: "Mustakbil Jobs", sourceUrl: "https://www.mustakbil.com/" },
+  { type: "private_job", sourceName: "BrightSpyre Jobs", sourceUrl: "https://www.brightspyre.com/" },
+  { type: "private_job", sourceName: "Indeed Pakistan", sourceUrl: "https://pk.indeed.com/" },
+  { type: "private_job", sourceName: "LinkedIn Jobs Pakistan", sourceUrl: "https://www.linkedin.com/jobs/" },
   { type: "scholarship", sourceName: "HEC Scholarships", sourceUrl: "https://hec.gov.pk/english/services/students/Pages/Scholarships.aspx" },
   { type: "scholarship", sourceName: "Punjab Educational Endowment Fund", sourceUrl: "https://peef.org.pk/" },
-  { type: "admission", sourceName: "University Admissions", sourceUrl: "https://www.hec.gov.pk/english/universities/Pages/default.aspx" },
+  { type: "scholarship", sourceName: "National ICT R&D Fund", sourceUrl: "https://ignite.org.pk/" },
+  { type: "scholarship", sourceName: "Pakistan Scholarships Network", sourceUrl: "https://www.pakistan.gov.pk/" },
+  { type: "scholarship", sourceName: "Fulbright Pakistan", sourceUrl: "https://usefp.org/scholarships/fulbright-degree.cfm" },
+  { type: "scholarship", sourceName: "Aga Khan Foundation Pakistan", sourceUrl: "https://www.akdn.org/where-we-work/south-asia/pakistan" },
+  { type: "scholarship", sourceName: "Commonwealth Scholarships Pakistan", sourceUrl: "https://www.hec.gov.pk/english/scholarshipsgrants/lao/Pages/Commonwealth.aspx" },
+  { type: "admission", sourceName: "HEC Recognized Universities", sourceUrl: "https://www.hec.gov.pk/english/universities/Pages/default.aspx" },
+  { type: "admission", sourceName: "National University of Sciences and Technology", sourceUrl: "https://nust.edu.pk/admissions/" },
+  { type: "admission", sourceName: "COMSATS University Admissions", sourceUrl: "https://islamabad.comsats.edu.pk/admissions.aspx" },
+  { type: "admission", sourceName: "University of the Punjab Admissions", sourceUrl: "https://pu.edu.pk/page/show/admissions" },
+  { type: "admission", sourceName: "University of Karachi Admissions", sourceUrl: "https://uok.edu.pk/admissions/" },
+  { type: "admission", sourceName: "LUMS Admissions", sourceUrl: "https://admissions.lums.edu.pk/" },
+  { type: "admission", sourceName: "Virtual University Admissions", sourceUrl: "https://www.vu.edu.pk/Admissions/Admissions" },
+  { type: "admission", sourceName: "Allama Iqbal Open University Admissions", sourceUrl: "https://www.aiou.edu.pk/admissions" },
+  { type: "admission", sourceName: "University of Engineering and Technology Lahore Admissions", sourceUrl: "https://uet.edu.pk/admission/" },
+  { type: "admission", sourceName: "University of Peshawar Admissions", sourceUrl: "https://www.uop.edu.pk/admissions/" },
   { type: "career_guide", sourceName: "Career Guidance Pakistan", sourceUrl: "https://www.careerpakistan.pk/" },
+  { type: "career_guide", sourceName: "NAVTTC Pakistan", sourceUrl: "https://navttc.gov.pk/" },
+  { type: "career_guide", sourceName: "DigiSkills Pakistan", sourceUrl: "https://digiskills.pk/" },
 ];
 
 export function slugify(value: string) {
@@ -70,6 +98,17 @@ function extractPageLinks(html: string, sourceUrl: string) {
   }
 
   return links;
+}
+
+function chooseSpecificLink(candidate: string | null | undefined, pageLinks: Array<{ title: string; url: string }>, sourceUrl: string) {
+  if (!candidate) return pageLinks[0]?.url || sourceUrl;
+  try {
+    const candidateUrl = new URL(candidate, sourceUrl).toString();
+    if (candidateUrl === sourceUrl) return pageLinks[0]?.url || sourceUrl;
+    return pageLinks.some((link) => link.url === candidateUrl) ? candidateUrl : pageLinks[0]?.url || sourceUrl;
+  } catch {
+    return pageLinks[0]?.url || sourceUrl;
+  }
 }
 
 function toSentenceCase(value: string) {
@@ -199,7 +238,7 @@ export async function scanSourcesForDrafts(sourceConfigs: SourceConfig[] = DEFAU
           country: item.country || "Pakistan",
           deadline: deadline && !Number.isNaN(deadline.getTime()) ? deadline : null,
           description: item.description,
-          applyLink: item.applyLink || pageLinks[0]?.url || source.sourceUrl,
+          applyLink: chooseSpecificLink(item.applyLink, pageLinks, source.sourceUrl),
           content: item.content || item.description,
           metaTitle: item.metaTitle || `${title} - Pakistan`,
           metaDescription: item.metaDescription || item.description.slice(0, 180),

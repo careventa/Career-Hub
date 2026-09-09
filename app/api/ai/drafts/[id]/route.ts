@@ -14,9 +14,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const { id } = await params;
     const body = await req.json();
+    const allowedStatuses = ["pending_review", "approved", "rejected"];
+    if (!allowedStatuses.includes(body.status)) {
+      return NextResponse.json({ error: "Invalid draft status" }, { status: 400 });
+    }
     const draft = await prisma.aiDraft.update({
       where: { id },
-      data: { status: body.status || "pending_review" },
+      data: { status: body.status },
     });
 
     return NextResponse.json({ draft });

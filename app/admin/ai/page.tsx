@@ -44,6 +44,7 @@ export default function AdminAIAutomationPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
   const [activeFilter, setActiveFilter] = useState<"all" | DraftType>("all");
+  const [busyAction, setBusyAction] = useState<string | null>(null);
 
   const fetchDrafts = useCallback(async () => {
     const token = localStorage.getItem("adminToken");
@@ -93,36 +94,60 @@ export default function AdminAIAutomationPage() {
   };
 
   const updateStatus = async (draftId: string, status: DraftStatus) => {
-    const res = await fetch(`/api/ai/drafts/${draftId}`, {
-      method: "PATCH",
-      headers: await getAuthHeaders(),
-      body: JSON.stringify({ status }),
-    });
-
-    if (!res.ok) {
-      setMessage("Could not update draft status.");
-      return;
+    setBusyAction(`${status}:${draftId}`);
+    try {
+      const res = await fetch(`/api/ai/drafts/${draftId}`, {
+        method: "PATCH",
+        headers: await getAuthHeaders(),
+        body: JSON.stringify({ status }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not update draft status.");
+      setMessage(`Draft marked as ${status}.`);
+      await fetchDrafts();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Could not update draft status.");
+    } finally {
+      setBusyAction(null);
     }
-
-    setMessage(`Draft marked as ${status}.`);
-    await fetchDrafts();
   };
 
   const publish = async (draftId: string) => {
-    const res = await fetch("/api/ai/publish", {
-      method: "POST",
-      headers: await getAuthHeaders(),
-      body: JSON.stringify({ draftId }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) {
-      setMessage(data.error || "Publish failed.");
-      return;
+    setBusyAction(`publish:${draftId}`);
+    try {
+      const res = await fetch("/api/ai/publish", {
+        method: "POST",
+        headers: await getAuthHeaders(),
+        body: JSON.stringify({ draftId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Publish failed.");
+      setMessage(data.message || "Published successfully.");
+      await fetchDrafts();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Publish failed.");
+    } finally {
+      setBusyAction(null);
     }
+  };
 
-    setMessage(data.message || "Published successfully.");
-    await fetchDrafts();
+  const deleteDraft = async (draftId: string) => {
+    if (!window.confirm("Delete this draft permanently?")) return;
+    setBusyAction(`delete:${draftId}`);
+    try {
+      const res = await fetch(`/api/ai/drafts/${draftId}`, {
+        method: "DELETE",
+        headers: await getAuthHeaders(),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Delete failed.");
+      setMessage("Draft deleted.");
+      await fetchDrafts();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Delete failed.");
+    } finally {
+      setBusyAction(null);
+    }
   };
 
   return (
@@ -162,9 +187,18 @@ export default function AdminAIAutomationPage() {
                     <p className="text-sm text-gray-600">{draft.organization || draft.sourceName}</p>
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    <button onClick={() => updateStatus(draft.id, "approved")} className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm">Approve</button>
-                    <button onClick={() => updateStatus(draft.id, "rejected")} className="bg-red-600 text-white px-3 py-1.5 rounded text-sm">Reject</button>
-                    <button onClick={() => publish(draft.id)} className="bg-green-700 text-white px-3 py-1.5 rounded text-sm">Final Publish</button>
+                    <button disabled={busyAction !== null} onClick={() => updateStatus(draft.id, "approved")} className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50">
+                      {busyAction === `approved:${draft.id}` ? "Approving..." : "Approve"}
+                    </button>
+                    <button disabled={busyAction !== null} onClick={() => updateStatus(draft.id, "rejected")} className="bg-red-600 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50">
+                      {busyAction === `rejected:${draft.id}` ? "Rejecting..." : "Reject"}
+                    </button>
+                    <button disabled={busyAction !== null || draft.status !== "approved"} onClick={() => publish(draft.id)} className="bg-green-700 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50">
+                      {busyAction === `publish:${draft.id}` ? "Publishing..." : "Final Publish"}
+                    </button>
+                    <button disabled={busyAction !== null} onClick={() => deleteDraft(draft.id)} className="bg-gray-700 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50">
+                      {busyAction === `delete:${draft.id}` ? "Deleting..." : "Delete"}
+                    </button>
                   </div>
                 </div>
 
