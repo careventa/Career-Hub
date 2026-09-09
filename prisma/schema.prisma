@@ -16,6 +16,23 @@ model User {
   createdAt DateTime @default(now())
 }
 
+model SiteSetting {
+  id           String   @id @default(cuid())
+  siteName     String   @default("CareerHub")
+  contactEmail String   @default("hello@careerhub.example")
+  updatedAt    DateTime @updatedAt
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  subject   String
+  message   String   @db.Text
+  status    String   @default("unread")
+  createdAt DateTime @default(now())
+}
+
 model Job {
   id           String   @id @default(cuid())
   title        String

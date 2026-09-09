@@ -197,6 +197,9 @@ export default function AdminContentPage() {
         <Link href="/admin/ai" className="inline-flex w-fit items-center rounded bg-green-700 px-4 py-2 text-sm font-medium text-white hover:bg-green-800">
           AI Automation
         </Link>
+        <Link href="/admin/settings" className="inline-flex w-fit items-center rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:border-green-600 hover:text-green-700">
+          Settings & Inbox
+        </Link>
       </div>
       {message ? <p className="-mt-6 text-sm text-green-700">{message}</p> : null}
 

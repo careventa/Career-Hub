@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 export default function ContactPage() {
   const [form, setForm] = useState({
@@ -14,6 +14,14 @@ export default function ContactPage() {
     message: string;
   }>({ type: "idle", message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [contactEmail, setContactEmail] = useState("hello@careerhub.example");
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void fetch("/api/site-settings").then((response) => response.json()).then((data) => setContactEmail(data.contactEmail || "hello@careerhub.example")).catch(() => undefined);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -72,7 +80,7 @@ export default function ContactPage() {
           <div className="rounded-2xl border bg-white p-6 shadow-sm space-y-5">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Email</h2>
-              <p className="text-gray-700">hello@careerhub.example</p>
+              <p className="text-gray-700">{contactEmail}</p>
             </div>
           </div>
         </div>

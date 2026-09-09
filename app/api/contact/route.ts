@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
+import { prisma } from "@/lib/prisma";
 
 function getResendClient() {
   const apiKey = process.env.RESEND_API_KEY;
@@ -21,6 +22,10 @@ export async function POST(req: Request) {
 
     const contactEmail = process.env.CONTACT_EMAIL;
     const resend = getResendClient();
+
+    await prisma.contactMessage.create({
+      data: { name, email, subject, message },
+    });
 
     if (!resend || !contactEmail) {
       return NextResponse.json(
